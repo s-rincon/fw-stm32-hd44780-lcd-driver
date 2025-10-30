@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.dsl": "c4",
+        "pcf8574_driver.h": "c"
+    }
+}

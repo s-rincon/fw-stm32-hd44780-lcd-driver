@@ -10,6 +10,7 @@
 
 #include "pcf8574_driver.h"
 
+
 bool pcf8574_init(pcf8574_driver_t *driver, I2C_HandleTypeDef *hi2c, uint8_t i2c_address, uint32_t i2c_timeout_ms) {
     if ((driver == NULL) || (hi2c == NULL)) {
         return false;

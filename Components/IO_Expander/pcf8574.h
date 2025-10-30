@@ -44,18 +44,19 @@
 typedef struct pcf8574_driver_ {
     I2C_HandleTypeDef *hi2c;    /**< Pointer to STM32 HAL I2C handle for communication */
     uint32_t timeout_ms;        /**< I2C communication timeout in milliseconds */
+    uint8_t i2c_address;        /**< I2C address of the PCF8574 device */
     uint8_t current_state;      /**< Current state of all 8 pins (cached for efficiency) */
-
 } pcf8574_driver_t;
 
 /**
  * @brief Initialize the PCF8574 driver instance
  * @param driver Pointer to the PCF8574 driver handle to initialize
  * @param hi2c Pointer to the configured STM32 HAL I2C handle
+ * @param i2c_address I2C address of the PCF8574 device (7-bit address)
  * @param i2c_timeout_ms I2C communication timeout in milliseconds
  * @return true if initialization successful, false otherwise
  */
-bool pcf8574_init(pcf8574_driver_t *driver, I2C_HandleTypeDef *hi2c, uint32_t i2c_timeout_ms); 
+bool pcf8574_init(pcf8574_driver_t *driver, I2C_HandleTypeDef *hi2c, uint8_t i2c_address, uint32_t i2c_timeout_ms); 
 
 /**
  * @brief Read the entire 8-bit port state

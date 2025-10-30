@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "pcf8574.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +45,7 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
+pcf8574_driver_t pcf8574_driver;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,6 +93,11 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  
+  // Initialize PCF8574 driver with I2C1 and standard address (0x27)
+  if (pcf8574_init(&pcf8574_driver, &hi2c1, 0x27, 100)) {
+    pcf8574_write_port(&pcf8574_driver, 0xFF);
+  }
 
   /* USER CODE END 2 */
 
@@ -103,6 +108,24 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    
+    // Example PCF8574 usage - toggle some pins
+    static uint32_t last_toggle = 0;
+    if (HAL_GetTick() - last_toggle > 1000) {  // Every 1 second
+      static bool toggle_state = false;
+      
+      if (toggle_state) {
+        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, true);   // Set P0 high
+        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, false);  // Set P1 low
+      } else {
+        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, false);  // Set P0 low
+        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, true);   // Set P1 high
+      }
+      
+      toggle_state = !toggle_state;
+      last_toggle = HAL_GetTick();
+    }
+    
   }
   /* USER CODE END 3 */
 }

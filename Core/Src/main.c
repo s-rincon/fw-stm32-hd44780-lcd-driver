@@ -22,6 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "pcf8574_driver.h"
+// #include "hd44780_pcf8574_driver.h"
+#include "hd44780_driver.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,6 +63,14 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/**
+ * @brief Redirect printf to UART1 for debugging
+ */
+int _write(int file, char *ptr, int len) {
+  HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+  return len;
+}
+
 bool io_expander_init(void *hw_instance) {
   UNUSED(hw_instance);
   return true;
@@ -92,7 +103,7 @@ pcf8574_driver_config_t pcf8574_config = {
   .i2c_timeout_ms = 100,
 };
 
-pcf8574_driver_t pcf8574_driver;
+hd44780_driver_t hd44780_lcd;
 
 /* USER CODE END 0 */
 
@@ -128,9 +139,12 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   
+  printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
+  printf("Initializing PCF8574 and HD44780...\r\n");
+  
   // Initialize PCF8574 driver with I2C1 and standard address (0x27)
-  if (pcf8574_init(&pcf8574_driver, &pcf8574_config)) {
-    pcf8574_write_port(&pcf8574_driver, 0xFF);
+  if (!hd44780_init(&hd44780_lcd, &pcf8574_config)) {
+    printf("LCD Initialization Failed!\r\n");
   }
 
   /* USER CODE END 2 */
@@ -143,22 +157,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
-    // Example PCF8574 usage - toggle some pins
-    static uint32_t last_toggle = 0;
-    if (HAL_GetTick() - last_toggle > 1000) {  // Every 1 second
-      static bool toggle_state = false;
-      
-      if (toggle_state) {
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, true);   // Set P0 high
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, false);  // Set P1 low
-      } else {
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, false);  // Set P0 low
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, true);   // Set P1 high
-      }
-      
-      toggle_state = !toggle_state;
-      last_toggle = HAL_GetTick();
-    }
+    // LCD demonstration - update display every 2 seconds
+
     
   }
   /* USER CODE END 3 */

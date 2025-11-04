@@ -6,6 +6,8 @@
 
 #include "pcf8574_driver.h"
 
+#define HD44780_STARTUP_TEST_ENABLE 1
+
 /**
  * @brief PCF8574 to HD44780 pin mapping
  */
@@ -21,21 +23,22 @@
 #define HD44780_TOTAL_COLS  16
 #define HD44780_TOTAL_ROWS  2
 
-typedef struct {
+typedef struct hd44780_driver_ {
     pcf8574_driver_t pcf8574_driver;
     bool backlight_state;                
 
-} HD44780_PCF8574_HandleTypeDef;
+} hd44780_driver_t;
 
-bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd, pcf8574_driver_config_t *pcf8574_config);
-bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t cmd);
-bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t data);
-bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd, char ch);
-bool hd44780_puts(HD44780_PCF8574_HandleTypeDef *lcd, const char *str);
-bool hd44780_gotoxy(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t col, uint8_t row);
-bool hd44780_clear(HD44780_PCF8574_HandleTypeDef *lcd);
-bool hd44780_backlight(HD44780_PCF8574_HandleTypeDef *lcd, bool state);
-bool hd44780_display_control(HD44780_PCF8574_HandleTypeDef *lcd, bool display_on, bool cursor_on, bool blink_on);
+bool hd44780_init(hd44780_driver_t *lcd, pcf8574_driver_config_t *pcf8574_config);
+bool hd44780_send_cmd(hd44780_driver_t *lcd, uint8_t cmd);
+bool hd44780_send_data(hd44780_driver_t *lcd, uint8_t data);
+bool hd44780_putchar(hd44780_driver_t *lcd, char ch);
+bool hd44780_puts(hd44780_driver_t *lcd, const char *str);
+bool hd44780_gotoxy(hd44780_driver_t *lcd, uint8_t col, uint8_t row);
+bool hd44780_clear(hd44780_driver_t *lcd);
+bool hd44780_backlight(hd44780_driver_t *lcd, bool state);
+bool hd44780_display_control(hd44780_driver_t *lcd, bool display_on, bool cursor_on, bool blink_on);
 
+bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line);
 
 #endif /* __HD44780_DRIVER_INC_ */

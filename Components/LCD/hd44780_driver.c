@@ -11,6 +11,7 @@
 
 #include "hd44780_driver.h"
 #include <string.h>
+#include <stdio.h>
 
 // HD44780 Commands
 #define HD44780_CMD_CLEAR_DISPLAY       0x01
@@ -48,7 +49,9 @@
 #define HD44780_ROW0_ADDR               0x00
 #define HD44780_ROW1_ADDR               0x40
 
-static bool hd44780_send_en_pulse(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
+static void hd44780_test(hd44780_driver_t *lcd_drv);
+
+static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -68,7 +71,7 @@ static bool hd44780_send_en_pulse(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
     return true;
 }
 
-static bool hd44780_write_nibble(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t nibble, bool is_data) {
+static bool hd44780_write_nibble(hd44780_driver_t *lcd_drv, uint8_t nibble, bool is_data) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -86,7 +89,7 @@ static bool hd44780_write_nibble(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t
     return hd44780_send_en_pulse(lcd_drv);
 }
 
-static bool hd44780_write_byte(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t byte, bool is_data) {
+static bool hd44780_write_byte(hd44780_driver_t *lcd_drv, uint8_t byte, bool is_data) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -104,7 +107,7 @@ static bool hd44780_write_byte(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t b
     return true;
 }
 
-bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd_drv, pcf8574_driver_config_t *pcf8574_config) {
+bool hd44780_init(hd44780_driver_t *lcd_drv, pcf8574_driver_config_t *pcf8574_config) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -171,10 +174,14 @@ bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd_drv, pcf8574_driver_config_
         return false;
     }
 
+#ifdef HD44780_STARTUP_TEST_ENABLE
+    hd44780_test(lcd_drv);
+#endif /* HD44780_STARTUP_TEST_ENABLE */
+
     return true;
 }
 
-bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t cmd) {
+bool hd44780_send_cmd(hd44780_driver_t *lcd_drv, uint8_t cmd) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -188,7 +195,7 @@ bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t cmd) {
     return true;
 }
 
-bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t data) {
+bool hd44780_send_data(hd44780_driver_t *lcd_drv, uint8_t data) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -202,7 +209,7 @@ bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t data) {
     return true;
 }
 
-bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd_drv, char ch) {
+bool hd44780_putchar(hd44780_driver_t *lcd_drv, char ch) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -210,7 +217,7 @@ bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd_drv, char ch) {
     return hd44780_send_data(lcd_drv, (uint8_t)ch);
 }
 
-bool hd44780_puts(HD44780_PCF8574_HandleTypeDef *lcd_drv, const char *text) {
+bool hd44780_puts(hd44780_driver_t *lcd_drv, const char *text) {
     if ((lcd_drv == false) || (text == false)) {
         return false;
     }
@@ -228,8 +235,26 @@ bool hd44780_puts(HD44780_PCF8574_HandleTypeDef *lcd_drv, const char *text) {
     return true;
 }
 
+bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line) {
+    if ((lcd_drv == NULL) || (text == NULL)) {
+        return false;
+    }
+
+    // Validate line number
+    if (line >= HD44780_TOTAL_ROWS) {
+        return false;
+    }
+
+    // Set cursor to beginning of specified line
+    if (!hd44780_gotoxy(lcd_drv, 0, line)) {
+        return false;
+    }
+
+    return hd44780_puts(lcd_drv, text);
+}
+
 /** DDRAM (row, col): (0,0) = 0, (0, 15) = 15, (1, 0) = 0x40, (1, 0x4f) = 0x4f */
-bool hd44780_gotoxy(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t col, uint8_t row) {
+bool hd44780_gotoxy(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -253,7 +278,7 @@ bool hd44780_gotoxy(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t col, uint8_t
 }
 
 /** Send 0x00000001 to clear all the display */
-bool hd44780_clear(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
+bool hd44780_clear(hd44780_driver_t *lcd_drv) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -262,7 +287,7 @@ bool hd44780_clear(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
 }
 
 /** set pin 0x08 to change backlight status */
-bool hd44780_backlight(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool state) {
+bool hd44780_backlight(hd44780_driver_t *lcd_drv, bool state) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -273,7 +298,7 @@ bool hd44780_backlight(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool state) {
 }
 
 /** 0b00001DCB -> 1 = DISPALY_CTRL, D = entire display on/off, C = cursor on//off, B = cursor blink on/off */
-bool hd44780_display_control(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool display_on, bool cursor_on, bool blink_on) {
+bool hd44780_display_control(hd44780_driver_t *lcd_drv, bool display_on, bool cursor_on, bool blink_on) {
     if (lcd_drv == NULL) {
         return false;
     }
@@ -284,4 +309,71 @@ bool hd44780_display_control(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool displa
     cmd |= (blink_on) ? HD44780_BLINK_ON : 0x00;
     
     return hd44780_send_cmd(lcd_drv, cmd);
+}
+
+void hd44780_test(hd44780_driver_t *lcd_drv) {
+#if HD44780_STARTUP_TEST_ENABLE
+    static uint32_t last_update = 0;
+    static uint8_t demo_state = 0;
+    char time_str[16];
+
+    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 0);
+    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 1);
+
+    while (1) {
+        if (HAL_GetTick() - last_update > 2000) {
+      
+            switch (demo_state) {
+                case 0:
+                    // Display initial test message
+                    hd44780_clear(lcd_drv);
+                    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
+                    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1); 
+                    break;
+                
+                case 1:
+                    // Running time display
+                    hd44780_clear(lcd_drv);
+                    hd44780_display_text_at_line(lcd_drv, "Running Time:", 0);
+                    snprintf(time_str, sizeof(time_str), "%lu ms", HAL_GetTick());
+                    hd44780_display_text_at_line(lcd_drv, time_str, 1);
+                    break;
+                
+                case 2:
+                    // Backlight toggle test
+                    hd44780_clear(lcd_drv);
+                    hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
+                    hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
+
+                    HAL_Delay(1000);
+                    hd44780_backlight(lcd_drv, false);
+                    HAL_Delay(1000);
+                    hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
+                    HAL_Delay(1000);
+                    hd44780_backlight(lcd_drv, true);
+                    break;
+                
+                case 3:
+                    // Cursor control test
+                    hd44780_clear(lcd_drv);
+                    hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
+                    hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
+                    hd44780_display_control(lcd_drv, true, true, true);
+                    HAL_Delay(2000);
+                    hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
+                    hd44780_display_control(lcd_drv, true, false, false);
+                    printf("Display: Cursor ON\r\n");
+                    break;
+                
+                default:
+                    demo_state = -1;
+                    hd44780_display_control(lcd_drv, true, false, false);
+                    break;
+            }
+        
+        demo_state++;
+        last_update = HAL_GetTick();
+        }
+    }
+#endif /* !HD44780_STARTUP_TEST_ENABLE */
 }

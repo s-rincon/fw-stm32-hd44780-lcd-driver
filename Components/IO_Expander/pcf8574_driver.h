@@ -15,13 +15,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "main.h"
+#include "pcf8574_i2c_interface.h"
 
 /**
  * @brief PCF8574 base I2C address (7-bit address shifted left)
  * @note This corresponds to the write address. For read operations, the HAL
  *       automatically sets the LSB to 1. The actual 7-bit address is 0x27.
  */
-#define PCF8574_I2C_ADDRESS     0x4E
+#define PCF8574_I2C_DEFAULT_ADDRESS     0x27
 
 /**
  * @brief PCF8574 pin bit masks for individual pin operations
@@ -36,27 +37,43 @@
 #define PCF8574_PIN_7   0x80    /**< Pin P7 - Bit mask for pin 7 */
 
 /**
+ * @brief PCF8574 driver configuration structure
+ */
+typedef struct pcf8574_driver_config_ {
+    pcf8574_i2c_interface_t *intf;
+    void *hw_instance;
+    uint8_t i2c_address;
+    uint32_t i2c_timeout_ms;
+
+} pcf8574_driver_config_t;
+
+/**
  * @brief PCF8574 driver handle structure
  * 
- * @note The current_state member is automatically updated by write operations
- *       and used for pin-level operations to avoid unnecessary I2C reads.
  */
 typedef struct pcf8574_driver_ {
-    I2C_HandleTypeDef *hi2c;    /**< Pointer to STM32 HAL I2C handle for communication */
-    uint32_t timeout_ms;        /**< I2C communication timeout in milliseconds */
-    uint8_t i2c_address;        /**< I2C address of the PCF8574 device */
-    uint8_t current_state;      /**< Current state of all 8 pins (cached for efficiency) */
+    pcf8574_i2c_interface_t *intf;
+    void *hw_instance;
+    uint8_t i2c_address;
+    uint8_t current_output;
+    uint32_t i2c_timeout_ms;
+
 } pcf8574_driver_t;
 
 /**
  * @brief Initialize the PCF8574 driver instance
  * @param driver Pointer to the PCF8574 driver handle to initialize
- * @param hi2c Pointer to the configured STM32 HAL I2C handle
- * @param i2c_address I2C address of the PCF8574 device (7-bit address)
- * @param i2c_timeout_ms I2C communication timeout in milliseconds
+ * @param config Pointer to the PCF8574 driver configuration
  * @return true if initialization successful, false otherwise
  */
-bool pcf8574_init(pcf8574_driver_t *driver, I2C_HandleTypeDef *hi2c, uint8_t i2c_address, uint32_t i2c_timeout_ms); 
+bool pcf8574_init(pcf8574_driver_t *driver, pcf8574_driver_config_t *config); 
+
+/**
+ * @brief Deinitialize the PCF8574 driver instance
+ * @param driver Pointer to the PCF8574 driver handle to deinitialize
+ * @return true if deinitialization successful, false otherwise
+ */
+bool pcf8574_deinit(pcf8574_driver_t *driver);
 
 /**
  * @brief Read the entire 8-bit port state

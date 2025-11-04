@@ -45,7 +45,7 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-pcf8574_driver_t pcf8574_driver;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,6 +59,40 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+bool io_expander_init(void *hw_instance) {
+  UNUSED(hw_instance);
+  return true;
+}
+
+bool io_expander_deinit(void *hw_instance) {
+  UNUSED(hw_instance);
+  return true;
+}
+
+bool io_expander_write(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms) {
+  return HAL_I2C_Master_Transmit((I2C_HandleTypeDef *)hw_instance, address, pdata, data_len, timeout_ms) == HAL_OK;
+}
+
+bool io_expander_read(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms) {
+  return HAL_I2C_Master_Receive((I2C_HandleTypeDef *)hw_instance, address, pdata, data_len, timeout_ms) == HAL_OK;
+}
+
+pcf8574_i2c_interface_t pcf8574_i2c_intf = {
+  .init = io_expander_init,
+  .deinit = io_expander_deinit,
+  .write = io_expander_write,
+  .read = io_expander_read
+};
+
+pcf8574_driver_config_t pcf8574_config = {
+  .intf = &pcf8574_i2c_intf,
+  .hw_instance = &hi2c1,
+  .i2c_address = 0x27,
+  .i2c_timeout_ms = 100,
+};
+
+pcf8574_driver_t pcf8574_driver;
 
 /* USER CODE END 0 */
 
@@ -95,7 +129,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   
   // Initialize PCF8574 driver with I2C1 and standard address (0x27)
-  if (pcf8574_init(&pcf8574_driver, &hi2c1, 0x27, 100)) {
+  if (pcf8574_init(&pcf8574_driver, &pcf8574_config)) {
     pcf8574_write_port(&pcf8574_driver, 0xFF);
   }
 

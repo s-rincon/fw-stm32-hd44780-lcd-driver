@@ -40,7 +40,6 @@
  * @brief PCF8574 driver configuration structure
  */
 typedef struct pcf8574_driver_config_ {
-    pcf8574_i2c_interface_t *intf;
     void *hw_instance;
     uint8_t i2c_address;
     uint32_t i2c_timeout_ms;
@@ -52,7 +51,6 @@ typedef struct pcf8574_driver_config_ {
  * 
  */
 typedef struct pcf8574_driver_ {
-    pcf8574_i2c_interface_t *intf;
     void *hw_instance;
     uint8_t i2c_address;
     uint8_t current_output;

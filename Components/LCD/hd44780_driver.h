@@ -18,6 +18,9 @@
 #define HD44780_PIN_D6      PCF8574_PIN_6  // Data bit 6
 #define HD44780_PIN_D7      PCF8574_PIN_7  // Data bit 7
 
+#define HD44780_TOTAL_COLS  16
+#define HD44780_TOTAL_ROWS  2
+
 typedef struct {
     pcf8574_driver_t pcf8574_driver;
     bool backlight_state;                

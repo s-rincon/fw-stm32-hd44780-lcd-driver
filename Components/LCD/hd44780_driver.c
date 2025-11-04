@@ -9,7 +9,7 @@
  * @date November 4, 2025
  */
 
-#include "hd44780_pcf8574_driver.h"
+#include "hd44780_driver.h"
 #include <string.h>
 
 // HD44780 Commands
@@ -48,38 +48,158 @@
 #define HD44780_ROW0_ADDR               0x00
 #define HD44780_ROW1_ADDR               0x40
 
-bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd) {    
+static bool hd44780_send_en_pulse(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+
+    HAL_Delay(1);
+    if (!pcf8574_write_pin(&lcd_drv->pcf8574_driver, HD44780_PIN_EN, true)) {
+        return false;
+    }
+
+    HAL_Delay(1);
+    if (!pcf8574_write_pin(&lcd_drv->pcf8574_driver, HD44780_PIN_EN, false)) {
+        return false;
+    }
+
+    HAL_Delay(1);
+
     return true;
 }
 
-bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t cmd) {
+static bool hd44780_write_nibble(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t nibble, bool is_data) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+
+    uint8_t data = (nibble & 0xF0);
+
+    data |= (is_data) ? HD44780_PIN_RS : 0x00;
+
+    data |= (lcd_drv->backlight_state) ? HD44780_PIN_BL : 0x00;
+
+    if (!pcf8574_write_port(&lcd_drv->pcf8574_driver, data)) {
+        return false;
+    }
+
+    return hd44780_send_en_pulse(lcd_drv);
+}
+
+static bool hd44780_write_byte(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t byte, bool is_data) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+
+    // Send high nibble
+    if (!hd44780_write_nibble(lcd_drv, byte & 0xF0, is_data)) {
+        return false;
+    }
+
+    // Send low nibble
+    if (!hd44780_write_nibble(lcd_drv, (byte << 4) & 0xF0, is_data)) {
+        return false;
+    }
+
     return true;
 }
 
-bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t data) {
+bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd_drv, pcf8574_driver_config_t *pcf8574_config) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+
+    HAL_Delay(100);
+
+    /* Initialize PCF8574 IO Expander */
+    if (!pcf8574_init(&lcd_drv->pcf8574_driver, pcf8574_config)) {
+        return false;
+    }
+    
+    /** Write 0x00 at startup */
+    if (!pcf8574_write_port(&lcd_drv->pcf8574_driver, 0x00)) {
+        return false;
+    }
+    
+    /* Enable backlight by default */
+    lcd_drv->backlight_state = true;
+    if (!hd44780_backlight(lcd_drv, true)) {
+        return false;
+    }
+
+    HAL_Delay(10);
+
+    if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        return false;
+    }
+    HAL_Delay(1);
+
+    if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        return false;
+    }
+    HAL_Delay(1);
+
+    if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        return false;
+    }
+    HAL_Delay(1);
+
+    if (!hd44780_write_nibble(lcd_drv, 0x20, 0)) {
+        return false;
+    }
+    HAL_Delay(1);
+
+    // Entry mode set: increment cursor, no shift
+    if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_ENTRY_MODE_SET | HD44780_ENTRY_LEFT | HD44780_ENTRY_SHIFT_DECREMENT)) {
+        return false;
+    }
+    
+    // Display on, cursor off, blink off
+    if (!hd44780_display_control(lcd_drv, true, false, false)) {
+        return false;
+    }
+
     return true;
 }
 
-bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd, char ch) {
+bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t cmd) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+
+    if (!hd44780_write_byte(lcd_drv, cmd, 0)) {
+        return false;
+    }
+
+    HAL_Delay(5);
+
     return true;
 }
 
-bool hd44780_puts(HD44780_PCF8574_HandleTypeDef *lcd, const char *str) {
+bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t data) {
     return true;
 }
 
-bool hd44780_gotoxy(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t col, uint8_t row) {
+bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd_drv, char ch) {
     return true;
 }
 
-bool hd44780_clear(HD44780_PCF8574_HandleTypeDef *lcd) {
+bool hd44780_puts(HD44780_PCF8574_HandleTypeDef *lcd_drv, const char *str) {
     return true;
 }
 
-bool hd44780_backlight(HD44780_PCF8574_HandleTypeDef *lcd, bool state) {
+bool hd44780_gotoxy(HD44780_PCF8574_HandleTypeDef *lcd_drv, uint8_t col, uint8_t row) {
     return true;
 }
 
-bool hd44780_display_control(HD44780_PCF8574_HandleTypeDef *lcd, bool display_on, bool cursor_on, bool blink_on) {
+bool hd44780_clear(HD44780_PCF8574_HandleTypeDef *lcd_drv) {
+    return true;
+}
+
+bool hd44780_backlight(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool state) {
+    return true;
+}
+
+bool hd44780_display_control(HD44780_PCF8574_HandleTypeDef *lcd_drv, bool display_on, bool cursor_on, bool blink_on) {
     return true;
 }

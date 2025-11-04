@@ -52,8 +52,8 @@ bool pcf8574_init(pcf8574_driver_t *driver, pcf8574_driver_config_t *config) {
         return false;
     }
     
-    // Test communication by writing 0xFF (all pins high)
-    if (pcf8574_write_port(driver, 0xFF)) {
+    // Test communication by writing 0xFF (all pins low)
+    if (pcf8574_write_port(driver, 0x00)) {
         return true;
     }
     

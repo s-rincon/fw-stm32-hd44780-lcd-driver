@@ -19,12 +19,12 @@
 #define HD44780_PIN_D7      PCF8574_PIN_7  // Data bit 7
 
 typedef struct {
-    pcf8574_driver_t *pcf8574_driver;    
+    pcf8574_driver_t pcf8574_driver;
     bool backlight_state;                
 
 } HD44780_PCF8574_HandleTypeDef;
 
-bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd);
+bool hd44780_init(HD44780_PCF8574_HandleTypeDef *lcd, pcf8574_driver_config_t *pcf8574_config);
 bool hd44780_send_cmd(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t cmd);
 bool hd44780_send_data(HD44780_PCF8574_HandleTypeDef *lcd, uint8_t data);
 bool hd44780_putchar(HD44780_PCF8574_HandleTypeDef *lcd, char ch);

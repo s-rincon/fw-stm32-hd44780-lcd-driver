@@ -22,8 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "pcf8574_driver.h"
-// #include "hd44780_pcf8574_driver.h"
 #include "hd44780_driver.h"
+#include "hd44780_pcf8574_adapter.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -71,13 +71,21 @@ int _write(int file, char *ptr, int len) {
   return len;
 }
 
-pcf8574_driver_config_t pcf8574_config = {
-  .hw_instance = &hi2c1,
-  .i2c_address = 0x27,
-  .i2c_timeout_ms = 100,
+// 1. Define PCF8574 driver and configuration
+static pcf8574_driver_t pcf8574;
+static pcf8574_driver_config_t pcf8574_config = {
+    .hw_instance = &hi2c1,
+    .i2c_address = PCF8574_I2C_DEFAULT_ADDRESS,
+    .i2c_timeout_ms = 100
 };
-
-hd44780_driver_t hd44780_lcd;
+      
+// 2. Create PCF8574 adapter context
+hd44780_pcf8574_context_t adapter_context = {
+    .pcf_drv = &pcf8574
+};
+    
+// 3. hd44780 driver instance
+static hd44780_driver_t lcd;
 
 /* USER CODE END 0 */
 
@@ -115,24 +123,24 @@ int main(void)
   
   printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
   printf("Initializing PCF8574 and HD44780...\r\n");
-  
-  // Initialize PCF8574 driver with I2C1 and standard address (0x27)
-  if (!hd44780_init(&hd44780_lcd, &pcf8574_config)) {
-    printf("LCD Initialization Failed!\r\n");
+
+  // Step 1. Initialize the PCF8574 driver
+  if (pcf8574_init(&pcf8574, &pcf8574_config)) {
+    // Stetp 2. Initialize the HD44780 driver
+    hd44780_init(&lcd, &hd44780_pcf8574_interface, &adapter_context);
   }
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  
+   
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
-    // LCD demonstration - update display every 2 seconds
-
     
   }
   /* USER CODE END 3 */

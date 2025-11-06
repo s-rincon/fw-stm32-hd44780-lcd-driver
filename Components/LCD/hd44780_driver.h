@@ -3,8 +3,9 @@
  * @brief HD44780 LCD Controller Driver Header
  * 
  * This header file provides the interface for controlling HD44780-compatible LCD displays
- * using the PCF8574 I2C IO expander. The driver supports 16x2 character displays with
- * 4-bit mode operation to minimize pin usage.
+ * using a hardware abstraction layer. The driver supports 16x2 character displays with
+ * 4-bit mode operation and can work with different hardware implementations through
+ * the hardware interface abstraction.
  * 
  * @author Santiago Rincon
  * @date November 4, 2025
@@ -16,20 +17,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "pcf8574_driver.h"
+#include "hd44780_interface.h"
 
 /** Enable startup test sequence (0=disabled, 1=enabled) */
-#define HD44780_STARTUP_TEST_ENABLE 1   
-
-#define HD44780_PIN_RS      PCF8574_PIN_0   /** Register Select pin */
-#define HD44780_PIN_RW      PCF8574_PIN_1   /** Read/Write pin (usually tied to GND) */
-#define HD44780_PIN_EN      PCF8574_PIN_2   /** Enable pin */
-#define HD44780_PIN_BL      PCF8574_PIN_3   /** Backlight control pin */
-#define HD44780_PIN_D4      PCF8574_PIN_4   /** Data bit 4 */
-#define HD44780_PIN_D5      PCF8574_PIN_5   /** Data bit 5 */
-#define HD44780_PIN_D6      PCF8574_PIN_6   /** Data bit 6 */
-#define HD44780_PIN_D7      PCF8574_PIN_7   /** Data bit 7 */
-
+#define HD44780_STARTUP_TEST_ENABLE 1
 
 #define HD44780_TOTAL_COLS  16  /** Total number of columns in the display */
 #define HD44780_TOTAL_ROWS  2   /** Total number of rows in the display */
@@ -38,18 +29,21 @@
  * @brief HD44780 LCD driver structure
  */
 typedef struct hd44780_driver_ {
-    pcf8574_driver_t pcf8574_driver;  /**< PCF8574 I2C IO expander driver instance */
-    bool backlight_state;             /**< Current backlight state (true=on, false=off) */
+    const hd44780_interface_t *hw_interface;  /**< Hardware interface operations */
+    void *hw_context;                         /**< Hardware-specific context data */
+    bool backlight_state;                     /**< Current backlight state (true=on, false=off) */
+    
 } hd44780_driver_t;
 
 /**
  * @brief Initialize the HD44780 LCD display
  * 
  * @param[in,out] lcd Pointer to the HD44780 driver structure
- * @param[in] pcf8574_config Pointer to PCF8574 configuration structure
+ * @param[in] hw_interface Pointer to hardware interface operations
+ * @param[in] hw_context Hardware-specific context data
  * @return true if initialization successful, false otherwise
  */
-bool hd44780_init(hd44780_driver_t *lcd, pcf8574_driver_config_t *pcf8574_config);
+bool hd44780_init(hd44780_driver_t *lcd, const hd44780_interface_t *hw_interface, void *hw_context);
 
 /**
  * @brief Send a command to the HD44780 controller

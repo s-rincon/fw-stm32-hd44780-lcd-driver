@@ -12,7 +12,7 @@
 static bool hd44780_pcf8574_init(void *context) {
     hd44780_pcf8574_context_t *ctx = (hd44780_pcf8574_context_t *)context;
 
-    if ((ctx == NULL) || ( ctx->pcf_drv == NULL)) {
+    if ((ctx == NULL) || (ctx->pcf_drv == NULL)) {
         return false;
     }
     return pcf8574_write_port(ctx->pcf_drv, 0);

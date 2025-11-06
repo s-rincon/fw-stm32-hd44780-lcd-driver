@@ -85,6 +85,7 @@ typedef struct hd44780_interface_ {
      * @param[in] ms Delay time in milliseconds
      */
     void (*delay_ms)(uint32_t ms);
+    
 } hd44780_interface_t;
 
 /**

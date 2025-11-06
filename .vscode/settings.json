@@ -6,6 +6,8 @@
         "main.h": "c",
         "pcf8574_i2c_interface.h": "c",
         "stddef.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "hd44780_driver.h": "c",
+        "string.h": "c"
     }
 }

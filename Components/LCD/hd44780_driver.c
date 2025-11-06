@@ -99,11 +99,40 @@ static bool hd44780_write_nibble(hd44780_driver_t *lcd_drv, uint8_t nibble, bool
         return false;
     }
 
-    uint8_t data = (nibble & 0xF0);
-    data |= (is_data) ? HD44780_PIN_RS : 0x00;
-    data |= (lcd_drv->backlight_state) ? HD44780_PIN_BL : 0x00;
+    // Set data bits D4-D7
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D4, (nibble & 0x10) != 0)) return false;
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D5, (nibble & 0x20) != 0)) return false;
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D6, (nibble & 0x40) != 0)) return false;
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D7, (nibble & 0x80) != 0)) return false;
 
-    if (!lcd_drv->hw_interface->write_port(lcd_drv->hw_context, data)) {
+    // Set RS pin (register select)
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_RS, is_data)) {
+        return false;
+    }
+
+    // Set RW pin to write mode
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_RW, false)) {
+        return false;
+    }
+
+    // Set backlight
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_BL, lcd_drv->backlight_state)) {
+        return false;
+    }
+
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D4, (nibble & 0x10) != 0)) {
+        return false;
+    }
+
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D5, (nibble & 0x20) != 0)) {
+        return false;
+    }
+
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D6, (nibble & 0x40) != 0)) {
+        return false;
+    }
+
+    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D7, (nibble & 0x80) != 0)) {
         return false;
     }
 

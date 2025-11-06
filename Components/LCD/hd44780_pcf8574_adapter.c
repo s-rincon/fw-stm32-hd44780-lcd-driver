@@ -63,10 +63,15 @@ static void hd44780_pcf8574_delay_ms(uint32_t ms) {
     HAL_Delay(ms);
 }
 
+static uint32_t hd44780_pcf8574_get_systick(void) {
+    return HAL_GetTick();
+}
+
 const hd44780_interface_t hd44780_pcf8574_interface = {
     .init = hd44780_pcf8574_init,
     .deinit = hd44780_pcf8574_deinit,
     .write_pin = hd44780_pcf8574_write_pin,
     .write_port = hd44780_pcf8574_write_port,
-    .delay_ms = hd44780_pcf8574_delay_ms
+    .delay_ms = hd44780_pcf8574_delay_ms,
+    .get_systick = hd44780_pcf8574_get_systick
 };

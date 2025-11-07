@@ -70,17 +70,13 @@ static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
         return false;
     }
 
-    lcd_drv->platform_ops->delay_ms(1);
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_EN, true)) {
         return false;
     }
 
-    lcd_drv->platform_ops->delay_ms(1);
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_EN, false)) {
         return false;
     }
-
-    lcd_drv->platform_ops->delay_ms(1);
 
     return true;
 }
@@ -256,8 +252,6 @@ bool hd44780_send_cmd(hd44780_driver_t *lcd_drv, uint8_t cmd) {
         return false;
     }
 
-    lcd_drv->platform_ops->delay_ms(5);
-
     return true;
 }
 
@@ -269,8 +263,6 @@ bool hd44780_send_data(hd44780_driver_t *lcd_drv, uint8_t data) {
     if (!hd44780_write_byte(lcd_drv, data, true)) {
         return false;
     }
-
-    lcd_drv->platform_ops->delay_ms(1);
 
     return true;
 }

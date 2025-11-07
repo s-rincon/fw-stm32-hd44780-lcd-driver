@@ -21,13 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "pcf8574_driver.h"
-#include "pcf8574_i2c_stm32_adapter.h"
-
-#include "hd44780_driver.h"
-#include "hd44780_pcf8574_generic_adapter.h"
-#include "platform_ops.h"
 #include <stdio.h>
+
+#include "app_display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,63 +70,15 @@ int _write(int file, char *ptr, int len) {
   return len;
 }
 
-// 1. Define PCF8574 driver
-static pcf8574_driver_t pcf8574;
-      
-// 2. Create PCF8574 adapter context
-static pcf8574_stm32_i2c_context_t pcf8574_stm32_i2c_context = {
-	.hi2c = &hi2c1,
-};
+static void display_test(void) {
+  static uint32_t last_tick = 0;
+  static uint32_t time_secs = 0;
 
-static hd44780_pcf8574_context_t hd44780_pcf8574_context = {
-    .pcf_drv = &pcf8574
-};
-    
-// 3. hd44780 driver instance
-static hd44780_driver_t lcd;
+  if ((HAL_GetTick() - last_tick) >= 1000) {
+    last_tick = HAL_GetTick();
+    display_show_time(++time_secs);
+  }
 
-static void hd44780_self_test(hd44780_driver_t *lcd_drv) {
-
-    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 0);
-    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 1);
-
-
-    lcd_drv->platform_ops->delay_ms(2000);
-
-    /** Display initial test message */
-    hd44780_clear(lcd_drv);
-    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
-    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1);
-    lcd_drv->platform_ops->delay_ms(2000);
-
-    /** Backlight toggle test */
-    hd44780_clear(lcd_drv);
-    hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
-    hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
-
-    lcd_drv->platform_ops->delay_ms(1000);
-    hd44780_backlight(lcd_drv, false);
-    lcd_drv->platform_ops->delay_ms(1000);
-    hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
-    lcd_drv->platform_ops->delay_ms(1000);
-    hd44780_backlight(lcd_drv, true);
-    lcd_drv->platform_ops->delay_ms(2000);
-
-    /** Cursor control test */
-    hd44780_clear(lcd_drv);
-    hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
-    hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
-    hd44780_display_control(lcd_drv, true, true, true);
-    lcd_drv->platform_ops->delay_ms(2000);
-    hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
-    hd44780_display_control(lcd_drv, true, false, false);
-    lcd_drv->platform_ops->delay_ms(2000);
-
-    /** Clear display */
-    hd44780_clear(lcd_drv);
-
-
-    return;
 }
 
 /* USER CODE END 0 */
@@ -168,22 +116,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   
   printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
-  printf("Initializing PCF8574 and HD44780...\r\n");
+  
+  display_init();
+  display_show_message("LCD TEST");
+  display_show_time(0);
+  HAL_Delay(2000);
 
-  // Step 1. Initialize the PCF8574 driver
-  if (pcf8574_init(&pcf8574, pcf8574_i2c_stm32_get_interface(), &pcf8574_stm32_i2c_context, PCF8574_I2C_DEFAULT_ADDRESS, 100)) {
-    printf("PCF8574 initialized successfully\r\n");
-    
-    // Step 2. Initialize the HD44780 driver
-    if (hd44780_init(&lcd, hd44780_pcf8574_get_interface(), platform_ops_get_instance(), &hd44780_pcf8574_context)) {
-    	hd44780_self_test(&lcd);
-      printf("HD44780 initialized successfully\r\n");
-    } else {
-      printf("HD44780 initialization failed\r\n");
-    }
-  } else {
-    printf("PCF8574 initialization failed\r\n");
-  }
+
 
   /* USER CODE END 2 */
 
@@ -193,6 +132,7 @@ int main(void)
    
   while (1)
   {
+    display_test();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

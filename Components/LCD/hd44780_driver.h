@@ -133,6 +133,6 @@ bool hd44780_display_control(hd44780_driver_t *lcd, bool display_on, bool cursor
  * @param[in] line Line number (0 to HD44780_TOTAL_ROWS-1)
  * @return true if text displayed successfully, false otherwise
  */
-bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line);
+bool hd44780_print_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line);
 
 #endif /* __HD44780_DRIVER_INC_ */

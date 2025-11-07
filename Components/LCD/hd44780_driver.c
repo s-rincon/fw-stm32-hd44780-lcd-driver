@@ -1,11 +1,11 @@
 /**
  * @file hd44780_driver.c
  * @brief HD44780 LCD Controller Driver Implementation
- * 
+ *
  * This file implements the HD44780 LCD controller driver using PCF8574 I2C IO expander
  * for hardware communication. The implementation provides a complete interface for
  * controlling 16x2 character LCD displays in 4-bit mode.
- * 
+ *
  * @author Santiago Rincón Carreño
  * @date November 4, 2025
  */
@@ -51,13 +51,6 @@
 #define HD44780_ROW1_ADDR               0x40    /** DDRAM address for row 1 */
 
 /**
- * @brief Execute startup test sequence for LCD verification
- * 
- * @param[in] lcd_drv Pointer to the HD44780 driver structure
- */
-static void hd44780_test(hd44780_driver_t *lcd_drv);
-
-/**
  * @brief Check if the HD44780 driver is initialized
  */
 static bool hd44780_is_initialized(hd44780_driver_t *lcd_drv) {
@@ -69,7 +62,7 @@ static bool hd44780_is_initialized(hd44780_driver_t *lcd_drv) {
 
 /**
  * @brief Generate enable pulse for HD44780 communication
- * 
+ *
  * @param[in] lcd_drv Pointer to the HD44780 driver structure
  */
 static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
@@ -94,57 +87,44 @@ static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
 
 /**
  * @brief Write a 4-bit nibble to HD44780 controller
- * 
- * @param[in] lcd_drv Pointer to the HD44780 driver structure
+ * @param lcd_drv Pointer to the HD44780 driver structure
+ * @param nibble Nibble to send (upper 4 bits)
+ * @param is_data true for data, false for command
+ * @return true if nibble sent successfully, false otherwise
  */
 static bool hd44780_write_nibble(hd44780_driver_t *lcd_drv, uint8_t nibble, bool is_data) {
     if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
-    // Set data bits D4-D7
+    /** Set data bits D4-D7 */
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D4, (nibble & 0x10) != 0)) return false;
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D5, (nibble & 0x20) != 0)) return false;
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D6, (nibble & 0x40) != 0)) return false;
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D7, (nibble & 0x80) != 0)) return false;
 
-    // Set RS pin (register select)
+    /** Set RS pin (register select) */
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_RS, is_data)) {
         return false;
     }
 
-    // Set RW pin to write mode
+    /** Set RW pin to write mode */
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_RW, false)) {
         return false;
     }
 
-    // Set backlight
+    /** Set backlight */
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_BL, lcd_drv->backlight_state)) {
         return false;
     }
 
-    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D4, (nibble & 0x10) != 0)) {
-        return false;
-    }
-
-    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D5, (nibble & 0x20) != 0)) {
-        return false;
-    }
-
-    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D6, (nibble & 0x40) != 0)) {
-        return false;
-    }
-
-    if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_D7, (nibble & 0x80) != 0)) {
-        return false;
-    }
-
+    /** Send enable pulse */
     return hd44780_send_en_pulse(lcd_drv);
 }
 
 /**
  * @brief Write a complete byte to HD44780 controller
- * 
+ *
  * @param[in] lcd_drv Pointer to the HD44780 driver structure
  * @param[in] byte Byte to send
  * @param[in] is_data true for data, false for command
@@ -174,13 +154,8 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
 
     lcd_drv->initialized = false;
 
-    if ((hw_interface == NULL) || (platform_ops == NULL) || 
-        (!hd44780_interface_validate(hw_interface))) {
-        return false;
-    }
-
-    /** Validate platform operations */
-    if (!platform_ops_validate(platform_ops)) {
+    if ((hw_interface == NULL) || (platform_ops == NULL) ||
+        (!hd44780_interface_validate(hw_interface)) || (!platform_ops_validate(platform_ops))) {
         return false;
     }
 
@@ -189,8 +164,12 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
     lcd_drv->hw_context = hw_context;
     lcd_drv->initialized = true;
 
-    /* Enable backlight by default */
+    /** Enable backlight by default */
     lcd_drv->backlight_state = true;
+    
+    /** Initialize cursor position tracking */
+    lcd_drv->current_col = 0;
+    lcd_drv->current_row = 0;
 
     /** Step 1. Power on delay > 100 ms */
     lcd_drv->platform_ops->delay_ms(100);
@@ -199,7 +178,7 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
     if (!lcd_drv->hw_interface->init(lcd_drv->hw_context)) {
         return false;
     }
-    
+
     lcd_drv->platform_ops->delay_ms(10);
 
     /** Step 2. Instruction 00110000b (30h), then delay > 4.1 ms */
@@ -235,35 +214,35 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
         lcd_drv->initialized = false;
         return false;
     }
-    
+
     /** Step 7. Turn off display */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_DISPLAY_CONTROL | HD44780_DISPLAY_OFF)) {
         lcd_drv->initialized = false;
         return false;
     }
-    
+
     /** Step 8. Clear display */
     if (!hd44780_clear(lcd_drv)) {
         lcd_drv->initialized = false;
         return false;
     }
-    
+
     /** Step 9. Configure entry mode set: increment cursor, no shift */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_ENTRY_MODE_SET | HD44780_ENTRY_LEFT | HD44780_ENTRY_SHIFT_DECREMENT)) {
         lcd_drv->initialized = false;
         return false;
     }
-    
+
     /** Step 10-11. Turn display on and turn cursor off */
     if (!hd44780_display_control(lcd_drv, true, false, false)) {
         lcd_drv->initialized = false;
         return false;
     }
 
-#ifdef HD44780_STARTUP_TEST_ENABLE
-    /** Step 12 (Optional). Execute test */
-    hd44780_test(lcd_drv);
-#endif /* HD44780_STARTUP_TEST_ENABLE */
+    if (!hd44780_set_cursor(lcd_drv, 0, 0)) {
+        lcd_drv->initialized = false;
+        return false;
+    }
 
     return true;
 }
@@ -300,47 +279,71 @@ bool hd44780_putchar(hd44780_driver_t *lcd_drv, char ch) {
     if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
-    
-    return hd44780_send_data(lcd_drv, (uint8_t)ch);
-}
 
-bool hd44780_puts(hd44780_driver_t *lcd_drv, const char *text) {
-    if ((!hd44780_is_initialized(lcd_drv)) || (text == NULL)) {
+    /** Check if we're at the end of the current row */
+    if (lcd_drv->current_col >= HD44780_TOTAL_COLS) {
+        return false; /** Cannot write beyond column limit */
+    }
+
+    /** Send the character */
+    if (!hd44780_send_data(lcd_drv, (uint8_t)ch)) {
         return false;
     }
 
-    uint32_t input_len = strlen(text);
-    uint8_t output_len = (input_len < HD44780_TOTAL_COLS) ? (uint8_t)input_len : HD44780_TOTAL_COLS;
+    /** Update position tracking */
+    lcd_drv->current_col++;
 
-    while (output_len--) {
-        if (!hd44780_putchar(lcd_drv, *text)) {
-            return false;
-        }
-        text++;
-    }
-    
     return true;
 }
 
-bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line) {
+
+/**
+ * @brief Print text with column control and padding
+ * @param lcd_drv Pointer to the HD44780 driver structure
+ * @param text Pointer to null-terminated string to display
+ * @return true if text printed successfully, false otherwise
+ */
+bool hd44780_print(hd44780_driver_t *lcd_drv, const char *text) {
     if ((!hd44780_is_initialized(lcd_drv)) || (text == NULL)) {
         return false;
     }
 
-    /** Validate line number */
-    if (line >= HD44780_TOTAL_ROWS) {
-        return false;
+    uint8_t start_col = lcd_drv->current_col;
+    
+    /* Calculate how many characters we can write from current position to end of line */
+    if (start_col >= HD44780_TOTAL_COLS) {
+        return false; /* Already at end of line */
+    }
+    
+    uint8_t chars_available = HD44780_TOTAL_COLS - start_col;
+    uint32_t input_len = strlen(text);
+    uint8_t text_chars = (input_len < chars_available) ? (uint8_t)input_len : chars_available;
+    
+    /* Write the text characters (up to available space) */
+    for (uint8_t i = 0; i < text_chars; i++) {
+        if (!hd44780_putchar(lcd_drv, text[i])) {
+            return false;
+        }
+    }
+    
+    /* Fill remaining columns with spaces to reach HD44780_TOTAL_COLS */
+    for (uint8_t i = text_chars; i < chars_available; i++) {
+        if (!hd44780_putchar(lcd_drv, ' ')) {
+            return false;
+        }
     }
 
-    /** Set cursor to beginning of specified line */
-    if (!hd44780_gotoxy(lcd_drv, 0, line)) {
-        return false;
-    }
-
-    return hd44780_puts(lcd_drv, text);
+    return true;
 }
 
-bool hd44780_gotoxy(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
+/**
+ * @brief Set cursor position (alias for hd44780_gotoxy)
+ * @param lcd_drv Pointer to the HD44780 driver structure
+ * @param col Column position (0 to HD44780_TOTAL_COLS-1)
+ * @param row Row position (0 to HD44780_TOTAL_ROWS-1)
+ * @return true if cursor positioned successfully, false otherwise
+ */
+bool hd44780_set_cursor(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
     if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
@@ -360,6 +363,10 @@ bool hd44780_gotoxy(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
             return false;
     }
 
+    /* Update position tracking */
+    lcd_drv->current_col = valid_col;
+    lcd_drv->current_row = valid_row;
+
     return hd44780_send_cmd(lcd_drv, HD44780_CMD_SET_DDRAM_ADDR | address);
 }
 
@@ -367,6 +374,10 @@ bool hd44780_clear(hd44780_driver_t *lcd_drv) {
     if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
+
+    /* Reset position tracking */
+    lcd_drv->current_col = 0;
+    lcd_drv->current_row = 0;
 
     return hd44780_send_cmd(lcd_drv, HD44780_CMD_CLEAR_DISPLAY);
 }
@@ -385,77 +396,32 @@ bool hd44780_display_control(hd44780_driver_t *lcd_drv, bool display_on, bool cu
     if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
-    
+
     uint8_t cmd = HD44780_CMD_DISPLAY_CONTROL;
     cmd |= (display_on) ? HD44780_DISPLAY_ON : 0x00;
     cmd |= (cursor_on) ? HD44780_CURSOR_ON : 0x00;
     cmd |= (blink_on) ? HD44780_BLINK_ON : 0x00;
-    
+
     return hd44780_send_cmd(lcd_drv, cmd);
 }
 
-static void hd44780_test(hd44780_driver_t *lcd_drv) {
-#if HD44780_STARTUP_TEST_ENABLE
-    static uint32_t test_time_ms = 0;
-    static uint8_t demo_state = 0;
-    char time_str[16];
-
-    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 0);
-    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 1);
-
-    while (1) {
-        lcd_drv->platform_ops->delay_ms(2000);
-      
-		switch (demo_state) {
-			case 0:
-				/** Display initial test message */
-				hd44780_clear(lcd_drv);
-				hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
-				hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1);
-				break;
-
-			case 1:
-				/** Running time display */
-				hd44780_clear(lcd_drv);
-				hd44780_display_text_at_line(lcd_drv, "Running Time:", 0);
-				snprintf(time_str, sizeof(time_str), "%lu ms", test_time_ms);
-				hd44780_display_text_at_line(lcd_drv, time_str, 1);
-				break;
-
-			case 2:
-				/** Backlight toggle test */
-				hd44780_clear(lcd_drv);
-				hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
-				hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
-
-				lcd_drv->platform_ops->delay_ms(1000);
-				hd44780_backlight(lcd_drv, false);
-				lcd_drv->platform_ops->delay_ms(1000);
-				hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
-				lcd_drv->platform_ops->delay_ms(1000);
-				hd44780_backlight(lcd_drv, true);
-				break;
-
-			case 3:
-				/** Cursor control test */
-				hd44780_clear(lcd_drv);
-				hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
-				hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
-				hd44780_display_control(lcd_drv, true, true, true);
-				lcd_drv->platform_ops->delay_ms(2000);
-				hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
-				hd44780_display_control(lcd_drv, true, false, false);
-				printf("Display: Cursor ON\r\n");
-				break;
-
-			default:
-				demo_state = -1;
-				hd44780_display_control(lcd_drv, true, false, false);
-				break;
-		}
-        
-        demo_state++;
-        test_time_ms += 2000;
+/**
+ * @brief Display text at specified line
+ * @param lcd_drv Pointer to the HD44780 driver structure
+ * @param text Pointer to null-terminated string to display
+ * @param line Line number (0 to HD44780_TOTAL_ROWS-1)
+ * @return true if text displayed successfully, false otherwise
+ */
+bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line) {
+    if (!hd44780_is_initialized(lcd_drv) || (text == NULL) || (line >= HD44780_TOTAL_ROWS)) {
+        return false;
     }
-#endif /* !HD44780_STARTUP_TEST_ENABLE */
+
+    /** Set cursor to beginning of specified line */
+    if (!hd44780_set_cursor(lcd_drv, 0, line)) {
+        return false;
+    }
+
+    /** Print text with padding to fill the entire line */
+    return hd44780_print(lcd_drv, text);
 }

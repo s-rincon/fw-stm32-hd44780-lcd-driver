@@ -89,6 +89,50 @@ static hd44780_pcf8574_context_t hd44780_pcf8574_context = {
 // 3. hd44780 driver instance
 static hd44780_driver_t lcd;
 
+static void hd44780_self_test(hd44780_driver_t *lcd_drv) {
+
+    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 0);
+    hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 1);
+
+
+    lcd_drv->platform_ops->delay_ms(2000);
+
+    /** Display initial test message */
+    hd44780_clear(lcd_drv);
+    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
+    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1);
+    lcd_drv->platform_ops->delay_ms(2000);
+
+    /** Backlight toggle test */
+    hd44780_clear(lcd_drv);
+    hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
+    hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
+
+    lcd_drv->platform_ops->delay_ms(1000);
+    hd44780_backlight(lcd_drv, false);
+    lcd_drv->platform_ops->delay_ms(1000);
+    hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
+    lcd_drv->platform_ops->delay_ms(1000);
+    hd44780_backlight(lcd_drv, true);
+    lcd_drv->platform_ops->delay_ms(2000);
+
+    /** Cursor control test */
+    hd44780_clear(lcd_drv);
+    hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
+    hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
+    hd44780_display_control(lcd_drv, true, true, true);
+    lcd_drv->platform_ops->delay_ms(2000);
+    hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
+    hd44780_display_control(lcd_drv, true, false, false);
+    lcd_drv->platform_ops->delay_ms(2000);
+
+    /** Clear display */
+    hd44780_clear(lcd_drv);
+
+
+    return;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -132,6 +176,7 @@ int main(void)
     
     // Step 2. Initialize the HD44780 driver
     if (hd44780_init(&lcd, hd44780_pcf8574_get_interface(), platform_ops_get_instance(), &hd44780_pcf8574_context)) {
+    	hd44780_self_test(&lcd);
       printf("HD44780 initialized successfully\r\n");
     } else {
       printf("HD44780 initialization failed\r\n");

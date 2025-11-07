@@ -20,9 +20,6 @@
 #include "hd44780_interface.h"
 #include "platform_ops.h"
 
-/** Enable startup test sequence (0=disabled, 1=enabled) */
-#define HD44780_STARTUP_TEST_ENABLE 1
-
 #define HD44780_TOTAL_COLS  16  /** Total number of columns in the display */
 #define HD44780_TOTAL_ROWS  2   /** Total number of rows in the display */
 
@@ -35,6 +32,8 @@ typedef struct hd44780_driver_ {
     void *hw_context;                           /**< Hardware-specific context data */
     bool backlight_state;                       /**< Current backlight state (true=on, false=off) */
     bool initialized;                           /**< Driver initialization state */
+    uint8_t current_col;                        /**< Current cursor column position (0 to HD44780_TOTAL_COLS-1) */
+    uint8_t current_row;                        /**< Current cursor row position (0 to HD44780_TOTAL_ROWS-1) */
 
 } hd44780_driver_t;
 
@@ -80,23 +79,23 @@ bool hd44780_send_data(hd44780_driver_t *lcd, uint8_t data);
 bool hd44780_putchar(hd44780_driver_t *lcd, char ch);
 
 /**
- * @brief Display a string at current cursor position
- * 
- * @param[in] lcd Pointer to the HD44780 driver structure
- * @param[in] str Pointer to null-terminated string to display
- * @return true if string displayed successfully, false otherwise
- */
-bool hd44780_puts(hd44780_driver_t *lcd, const char *str);
-
-/**
- * @brief Set cursor position to specified column and row
+ * @brief Set cursor position to specified column and row (alias for hd44780_gotoxy)
  * 
  * @param[in] lcd Pointer to the HD44780 driver structure
  * @param[in] col Column position (0 to HD44780_TOTAL_COLS-1)
  * @param[in] row Row position (0 to HD44780_TOTAL_ROWS-1)
  * @return true if cursor positioned successfully, false otherwise
  */
-bool hd44780_gotoxy(hd44780_driver_t *lcd, uint8_t col, uint8_t row);
+bool hd44780_set_cursor(hd44780_driver_t *lcd, uint8_t col, uint8_t row);
+
+/**
+ * @brief Print text at current cursor position with column limit and padding
+ * 
+ * @param[in] lcd Pointer to the HD44780 driver structure
+ * @param[in] text Pointer to null-terminated string to display
+ * @return true if text printed successfully, false otherwise
+ */
+bool hd44780_print(hd44780_driver_t *lcd, const char *text);
 
 /**
  * @brief Clear the entire display

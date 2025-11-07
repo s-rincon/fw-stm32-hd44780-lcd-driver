@@ -21,12 +21,12 @@
 /**
  * @brief STM32 I2C adapter context structure for PCF8574
  */
-typedef struct pcf8574_i2c_stm32_adapter_context_ {
+typedef struct pcf8574_stm32_i2c_context_ {
     I2C_HandleTypeDef *hi2c;                 /**< STM32 HAL I2C handle */
 
-} pcf8574_i2c_stm32_adapter_context_t;
+} pcf8574_stm32_i2c_context_t;
 
 
-extern const pcf8574_interface_t pcf8574_i2c_stm32_adapter;
+extern const pcf8574_interface_t pcf8574_i2c_stm32_interface;
 
 #endif /* __PCF8574_I2C_STM32_ADAPTER_INC_ */

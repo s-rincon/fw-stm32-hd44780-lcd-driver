@@ -16,7 +16,7 @@
  * @brief Initialize STM32 I2C interface
  */
 static bool pcf8574_stm32_i2c_init(void *context) {
-    pcf8574_i2c_stm32_adapter_context_t *ctx = (pcf8574_i2c_stm32_adapter_context_t *)context;
+	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
     
     if ((ctx == NULL) || (ctx->hi2c == NULL)) {
         return false;
@@ -31,7 +31,7 @@ static bool pcf8574_stm32_i2c_init(void *context) {
  * @brief Deinitialize STM32 I2C interface
  */
 static bool pcf8574_stm32_i2c_deinit(void *context) {
-    pcf8574_i2c_stm32_adapter_context_t *ctx = (pcf8574_i2c_stm32_adapter_context_t *)context;
+	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
 
     if (ctx == NULL) {
         return false;
@@ -44,10 +44,10 @@ static bool pcf8574_stm32_i2c_deinit(void *context) {
 /**
  * @brief Write data to I2C device using STM32 HAL
  */
-static bool pcf8574_stm32_i2c_write(void *context, uint8_t address, uint8_t *data, uint16_t data_len, uint32_t timeout_ms) {
-    pcf8574_i2c_stm32_adapter_context_t *ctx = (pcf8574_i2c_stm32_adapter_context_t *)context;
+static bool pcf8574_stm32_i2c_write(void *context, uint8_t address, uint8_t *data, uint32_t data_len, uint32_t timeout_ms) {
+	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
 
-    if ((ctx == NULL) || (ctx->hi2c) || (data == NULL) || (data_len == 0)) {
+    if ((ctx == NULL) || (ctx->hi2c == NULL) || (data == NULL) || (data_len == 0)) {
         return false;
     }
 
@@ -58,19 +58,19 @@ static bool pcf8574_stm32_i2c_write(void *context, uint8_t address, uint8_t *dat
  * @brief Read data from I2C device using STM32 HAL
  * 
  */
-bool pcf8574_stm32_i2c_read(void *context, uint8_t address, uint8_t *data, uint32_t data_len, uint32_t timeout_ms) {
-    pcf8574_i2c_stm32_adapter_context_t *ctx = (pcf8574_i2c_stm32_adapter_context_t *)context;
+static bool pcf8574_stm32_i2c_read(void *context, uint8_t address, uint8_t *data, uint32_t data_len, uint32_t timeout_ms) {
+	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
 
-    if ((ctx == NULL) || (ctx->hi2c) || (data == NULL) || (data_len == 0)) {
+    if ((ctx == NULL) || (ctx->hi2c == NULL) || (data == NULL) || (data_len == 0)) {
         return false;
     }
-    return (HAL_I2C_Master_Receive(ctx->hi2c, address, data_len, data_len, timeout_ms) == HAL_OK);
+    return (HAL_I2C_Master_Receive(ctx->hi2c, address, data, data_len, timeout_ms) == HAL_OK);
 }
 
 /**
  * @brief Static I2C interface structure for STM32 HAL
  */
-const pcf8574_interface_t stm32_i2c_interface = {
+const pcf8574_interface_t pcf8574_i2c_stm32_interface = {
     .init = pcf8574_stm32_i2c_init,
     .deinit = pcf8574_stm32_i2c_deinit,
     .write = pcf8574_stm32_i2c_write,

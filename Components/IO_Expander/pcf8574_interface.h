@@ -15,7 +15,7 @@ typedef struct pcf8574_interface_ {
      * @param[in] hw_instance Pointer to the hardware-specific I2C instance
      * @return true if initialization successful, false otherwise
      */
-    bool (*init)(void *hw_instance);
+    bool (*init)(void *context);
 
     /**
      * @brief Deinitialize the I2C interface
@@ -23,7 +23,7 @@ typedef struct pcf8574_interface_ {
      * @param[in] hw_instance Pointer to the hardware-specific I2C instance
      * @return true if deinitialization successful, false otherwise
      */
-    bool (*deinit)(void *hw_instance);
+    bool (*deinit)(void *context);
 
     /**
      * @brief Write data using the I2C interface
@@ -34,7 +34,7 @@ typedef struct pcf8574_interface_ {
      * @param[in] timeout_ms Timeout in milliseconds for the I2C transaction
      * @return true if write successful, false otherwise
      */
-    bool (*write)(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
+    bool (*write)(void *context, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
 
     /**
      * @brief Read data using the I2C interface
@@ -45,7 +45,7 @@ typedef struct pcf8574_interface_ {
      * @param[in] timeout_ms Timeout in milliseconds for the I2C transaction
      * @return true if read successful, false otherwise
      */
-    bool (*read)(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
+    bool (*read)(void *context, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
 
 } pcf8574_interface_t;
 

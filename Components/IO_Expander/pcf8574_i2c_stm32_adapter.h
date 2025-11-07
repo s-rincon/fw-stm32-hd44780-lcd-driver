@@ -23,10 +23,12 @@
  */
 typedef struct pcf8574_stm32_i2c_context_ {
     I2C_HandleTypeDef *hi2c;                 /**< STM32 HAL I2C handle */
-
 } pcf8574_stm32_i2c_context_t;
 
-
-extern const pcf8574_interface_t pcf8574_i2c_stm32_interface;
+/**
+ * @brief Get the STM32 I2C interface for PCF8574
+ * @return Pointer to the PCF8574 interface structure
+ */
+const pcf8574_interface_t *pcf8574_i2c_stm32_get_interface(void);
 
 #endif /* __PCF8574_I2C_STM32_ADAPTER_INC_ */

@@ -14,6 +14,8 @@
 
 /**
  * @brief Initialize STM32 I2C interface
+ * @param context Pointer to pcf8574_stm32_i2c_context_t structure
+ * @return true if initialization successful, false otherwise
  */
 static bool pcf8574_stm32_i2c_init(void *context) {
 	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
@@ -22,13 +24,15 @@ static bool pcf8574_stm32_i2c_init(void *context) {
         return false;
     }
 
-    // I2C peripheral is already initialized by HAL_I2C_Init() in main.c
+    /** I2C peripheral is already initialized by HAL_I2C_Init() in main.c */
     
     return true;
 }
 
 /**
  * @brief Deinitialize STM32 I2C interface
+ * @param context Pointer to pcf8574_stm32_i2c_context_t structure
+ * @return true if deinitialization successful, false otherwise
  */
 static bool pcf8574_stm32_i2c_deinit(void *context) {
 	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
@@ -43,6 +47,12 @@ static bool pcf8574_stm32_i2c_deinit(void *context) {
 
 /**
  * @brief Write data to I2C device using STM32 HAL
+ * @param context Pointer to pcf8574_stm32_i2c_context_t structure
+ * @param address I2C device address (8-bit format)
+ * @param data Pointer to data buffer to write
+ * @param data_len Number of bytes to write
+ * @param timeout_ms Timeout in milliseconds
+ * @return true if write successful, false otherwise
  */
 static bool pcf8574_stm32_i2c_write(void *context, uint8_t address, uint8_t *data, uint32_t data_len, uint32_t timeout_ms) {
 	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
@@ -56,7 +66,12 @@ static bool pcf8574_stm32_i2c_write(void *context, uint8_t address, uint8_t *dat
 
 /**
  * @brief Read data from I2C device using STM32 HAL
- * 
+ * @param context Pointer to pcf8574_stm32_i2c_context_t structure
+ * @param address I2C device address (8-bit format)
+ * @param data Pointer to buffer to store read data
+ * @param data_len Number of bytes to read
+ * @param timeout_ms Timeout in milliseconds
+ * @return true if read successful, false otherwise
  */
 static bool pcf8574_stm32_i2c_read(void *context, uint8_t address, uint8_t *data, uint32_t data_len, uint32_t timeout_ms) {
 	pcf8574_stm32_i2c_context_t *ctx = (pcf8574_stm32_i2c_context_t *)context;
@@ -76,3 +91,11 @@ const pcf8574_interface_t pcf8574_i2c_stm32_interface = {
     .write = pcf8574_stm32_i2c_write,
     .read = pcf8574_stm32_i2c_read,
 };
+
+/**
+ * @brief Get the PCF8574 I2C interface implementation for STM32
+ * @return Pointer to the PCF8574 interface structure
+ */
+const pcf8574_interface_t *pcf8574_i2c_stm32_get_interface(void) {
+    return &pcf8574_i2c_stm32_interface;
+}

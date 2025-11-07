@@ -6,8 +6,6 @@
  * with a PCF8574 I²C I/O expander. It allows using the same HD44780 driver
  * with multiple LCD modules by providing separate contexts for each.
  *
- * Each LCD instance can use a unique PCF8574 device (different I²C address or bus).
- *
  * @author Santiago Rincon
  * @date 2025-11-05
  */
@@ -20,19 +18,16 @@
 #include <stdint.h>
 
 /**
- * @brief Context for an HD44780 LCD connected via PCF8574
+ * @brief Context structure for an HD44780 LCD connected via PCF8574
  */
 typedef struct {
-    pcf8574_driver_t *pcf_drv;          /**< Pointer to PCF8574 device instance */
-    
+    pcf8574_driver_t *pcf_drv;          /**< Pointer to initialized PCF8574 driver instance */
 } hd44780_pcf8574_context_t;
 
 /**
- * @brief Global instance of the PCF8574 adapter interface
- *
- * This structure implements the hd44780_interface_t interface using
- * PCF8574-specific operations.
+ * @brief Get the HD44780 interface implementation for PCF8574 adapter
+ * @return Pointer to the HD44780 interface structure
  */
-extern const hd44780_interface_t hd44780_pcf8574_interface;
+const hd44780_interface_t *hd44780_pcf8574_get_interface(void);
 
 #endif /* HD44780_ADAPTER_PCF8574_H */

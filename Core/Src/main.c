@@ -126,14 +126,12 @@ int main(void)
   printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
   printf("Initializing PCF8574 and HD44780...\r\n");
 
-  const platform_ops_t *platform_ops = platform_ops_get_instance();
-
   // Step 1. Initialize the PCF8574 driver
-  if (pcf8574_init(&pcf8574, &pcf8574_i2c_stm32_interface, &pcf8574_stm32_i2c_context, PCF8574_I2C_DEFAULT_ADDRESS, 100)) {
+  if (pcf8574_init(&pcf8574, pcf8574_i2c_stm32_get_interface(), &pcf8574_stm32_i2c_context, PCF8574_I2C_DEFAULT_ADDRESS, 100)) {
     printf("PCF8574 initialized successfully\r\n");
     
     // Step 2. Initialize the HD44780 driver
-    if (hd44780_init(&lcd, &hd44780_pcf8574_interface, platform_ops_get_instance(), &hd44780_pcf8574_context)) {
+    if (hd44780_init(&lcd, hd44780_pcf8574_get_interface(), platform_ops_get_instance(), &hd44780_pcf8574_context)) {
       printf("HD44780 initialized successfully\r\n");
     } else {
       printf("HD44780 initialization failed\r\n");

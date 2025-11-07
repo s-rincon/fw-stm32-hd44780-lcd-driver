@@ -79,20 +79,6 @@ typedef struct hd44780_interface_ {
      */
     bool (*write_port)(void *context, uint8_t data);
     
-    /**
-     * @brief Delay execution for specified milliseconds
-     * 
-     * @param[in] ms Delay time in milliseconds
-     */
-    void (*delay_ms)(uint32_t ms);
-
-    /** 
-     * @brief Get the current system tick count, expected to be in ms
-     * 
-     * return current systick in milliseconds
-     */
-    uint32_t (*get_systick)(void);
-    
 } hd44780_interface_t;
 
 /**
@@ -108,9 +94,7 @@ static inline bool hd44780_interface_validate(const hd44780_interface_t *interfa
            (interface->init != NULL) &&
            (interface->deinit != NULL) &&
            (interface->write_pin != NULL) &&
-           (interface->write_port != NULL) &&
-           (interface->delay_ms != NULL) &&
-           (interface->get_systick != NULL);
+           (interface->write_port != NULL);
 }
 
 #endif /* HD44780_INTERFACE_H */

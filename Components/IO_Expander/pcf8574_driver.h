@@ -53,7 +53,10 @@ typedef struct pcf8574_driver_ {
 /**
  * @brief Initialize the PCF8574 driver instance
  * @param driver Pointer to the PCF8574 driver handle to initialize
- * @param config Pointer to the PCF8574 driver configuration
+ * @param hw_interface Pointer to the PCF8574 I2C interface structure
+ * @param hw_context Pointer to hardware-specific context data
+ * @param i2c_address 7-bit I2C address of the PCF8574 device
+ * @param i2c_timeout_ms Timeout in milliseconds for I2C transactions
  * @return true if initialization successful, false otherwise
  */
 bool pcf8574_init(pcf8574_driver_t *io_drv,

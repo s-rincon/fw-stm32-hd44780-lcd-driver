@@ -25,7 +25,7 @@
 #include "pcf8574_i2c_stm32_adapter.h"
 
 #include "hd44780_driver.h"
-#include "hd44780_pcf8574_adapter.h"
+#include "hd44780_pcf8574_generic_adapter.h"
 #include "platform_ops.h"
 #include <stdio.h>
 /* USER CODE END Includes */

@@ -14,7 +14,7 @@
  * @date 2025-11-07
  */
 
-#include "hd44780_pcf8574_adapter.h"
+#include "hd44780_pcf8574_generic_adapter.h"
 
 #include <stddef.h>
 #include "main.h"

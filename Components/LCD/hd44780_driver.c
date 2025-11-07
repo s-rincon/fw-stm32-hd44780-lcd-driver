@@ -58,6 +58,16 @@
 static void hd44780_test(hd44780_driver_t *lcd_drv);
 
 /**
+ * @brief Check if the HD44780 driver is initialized
+ */
+static bool hd44780_is_initialized(hd44780_driver_t *lcd_drv) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
+    return lcd_drv->initialized;
+}
+
+/**
  * @brief Generate enable pulse for HD44780 communication
  * 
  * @param[in] lcd_drv Pointer to the HD44780 driver structure
@@ -88,7 +98,7 @@ static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
  * @param[in] lcd_drv Pointer to the HD44780 driver structure
  */
 static bool hd44780_write_nibble(hd44780_driver_t *lcd_drv, uint8_t nibble, bool is_data) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -140,7 +150,7 @@ static bool hd44780_write_nibble(hd44780_driver_t *lcd_drv, uint8_t nibble, bool
  * @param[in] is_data true for data, false for command
  */
 static bool hd44780_write_byte(hd44780_driver_t *lcd_drv, uint8_t byte, bool is_data) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -158,8 +168,13 @@ static bool hd44780_write_byte(hd44780_driver_t *lcd_drv, uint8_t byte, bool is_
 }
 
 bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_interface, const platform_ops_t *platform_ops, void *hw_context) {
+    if (lcd_drv == NULL) {
+        return false;
+    }
 
-    if ((lcd_drv == NULL) || (hw_interface == NULL) || (platform_ops == NULL) || 
+    lcd_drv->initialized = false;
+
+    if ((hw_interface == NULL) || (platform_ops == NULL) || 
         (!hd44780_interface_validate(hw_interface))) {
         return false;
     }
@@ -172,6 +187,7 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
     lcd_drv->hw_interface = hw_interface;
     lcd_drv->platform_ops = platform_ops;
     lcd_drv->hw_context = hw_context;
+    lcd_drv->initialized = true;
 
     /* Enable backlight by default */
     lcd_drv->backlight_state = true;
@@ -188,50 +204,59 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
 
     /** Step 2. Instruction 00110000b (30h), then delay > 4.1 ms */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        lcd_drv->initialized = false;
         return false;
     }
     lcd_drv->platform_ops->delay_ms(5);
 
     /** Step 3. Instruction 00110000b (30h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        lcd_drv->initialized = false;
         return false;
     }
     lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 4. Instruction 00110000b (30h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
+        lcd_drv->initialized = false;
         return false;
     }
     lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 5. Instruction 00100000b (20h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x20, 0)) {
+        lcd_drv->initialized = false;
         return false;
     }
     lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 6. Send Function Set with proper configuration */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_FUNCTION_SET | HD44780_4BIT_MODE | HD44780_2_LINE | HD44780_5x8_DOTS)) {
+        lcd_drv->initialized = false;
         return false;
     }
     
     /** Step 7. Turn off display */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_DISPLAY_CONTROL | HD44780_DISPLAY_OFF)) {
+        lcd_drv->initialized = false;
         return false;
     }
     
     /** Step 8. Clear display */
     if (!hd44780_clear(lcd_drv)) {
+        lcd_drv->initialized = false;
         return false;
     }
     
     /** Step 9. Configure entry mode set: increment cursor, no shift */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_ENTRY_MODE_SET | HD44780_ENTRY_LEFT | HD44780_ENTRY_SHIFT_DECREMENT)) {
+        lcd_drv->initialized = false;
         return false;
     }
     
     /** Step 10-11. Turn display on and turn cursor off */
     if (!hd44780_display_control(lcd_drv, true, false, false)) {
+        lcd_drv->initialized = false;
         return false;
     }
 
@@ -244,7 +269,7 @@ bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_inter
 }
 
 bool hd44780_send_cmd(hd44780_driver_t *lcd_drv, uint8_t cmd) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -258,7 +283,7 @@ bool hd44780_send_cmd(hd44780_driver_t *lcd_drv, uint8_t cmd) {
 }
 
 bool hd44780_send_data(hd44780_driver_t *lcd_drv, uint8_t data) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -272,7 +297,7 @@ bool hd44780_send_data(hd44780_driver_t *lcd_drv, uint8_t data) {
 }
 
 bool hd44780_putchar(hd44780_driver_t *lcd_drv, char ch) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
     
@@ -280,7 +305,7 @@ bool hd44780_putchar(hd44780_driver_t *lcd_drv, char ch) {
 }
 
 bool hd44780_puts(hd44780_driver_t *lcd_drv, const char *text) {
-    if ((lcd_drv == NULL) || (text == NULL)) {
+    if ((!hd44780_is_initialized(lcd_drv)) || (text == NULL)) {
         return false;
     }
 
@@ -298,7 +323,7 @@ bool hd44780_puts(hd44780_driver_t *lcd_drv, const char *text) {
 }
 
 bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, uint8_t line) {
-    if ((lcd_drv == NULL) || (text == NULL)) {
+    if ((!hd44780_is_initialized(lcd_drv)) || (text == NULL)) {
         return false;
     }
 
@@ -316,7 +341,7 @@ bool hd44780_display_text_at_line(hd44780_driver_t *lcd_drv, const char *text, u
 }
 
 bool hd44780_gotoxy(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -339,7 +364,7 @@ bool hd44780_gotoxy(hd44780_driver_t *lcd_drv, uint8_t col, uint8_t row) {
 }
 
 bool hd44780_clear(hd44780_driver_t *lcd_drv) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -347,7 +372,7 @@ bool hd44780_clear(hd44780_driver_t *lcd_drv) {
 }
 
 bool hd44780_backlight(hd44780_driver_t *lcd_drv, bool state) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
 
@@ -357,7 +382,7 @@ bool hd44780_backlight(hd44780_driver_t *lcd_drv, bool state) {
 }
 
 bool hd44780_display_control(hd44780_driver_t *lcd_drv, bool display_on, bool cursor_on, bool blink_on) {
-    if (lcd_drv == NULL) {
+    if (!hd44780_is_initialized(lcd_drv)) {
         return false;
     }
     

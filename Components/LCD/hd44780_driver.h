@@ -34,6 +34,7 @@ typedef struct hd44780_driver_ {
     const platform_ops_t *platform_ops;         /**< Platform operations */
     void *hw_context;                           /**< Hardware-specific context data */
     bool backlight_state;                       /**< Current backlight state (true=on, false=off) */
+    bool initialized;                           /**< Driver initialization state */
 
 } hd44780_driver_t;
 

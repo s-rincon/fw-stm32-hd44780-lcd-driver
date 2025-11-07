@@ -6,11 +6,6 @@
  * for hardware communication. The implementation provides a complete interface for
  * controlling 16x2 character LCD displays in 4-bit mode.
  * 
- * The driver implements a layered architecture:
- * - Public API functions for application interface
- * - Internal helper functions for low-level communication
- * - Hardware abstraction through PCF8574 driver
- * 
  * @author Santiago Rincón Carreño
  * @date November 4, 2025
  */
@@ -68,23 +63,21 @@ static void hd44780_test(hd44780_driver_t *lcd_drv);
  * @param[in] lcd_drv Pointer to the HD44780 driver structure
  */
 static bool hd44780_send_en_pulse(hd44780_driver_t *lcd_drv) {
-    if (lcd_drv == NULL) {
+    if (lcd_drv == NULL || lcd_drv->hw_interface == NULL || lcd_drv->platform_ops == NULL) {
         return false;
     }
 
-    lcd_drv->hw_interface->delay_ms(1);
-
+    lcd_drv->platform_ops->delay_ms(1);
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_EN, true)) {
         return false;
     }
 
-    lcd_drv->hw_interface->delay_ms(1);
-
+    lcd_drv->platform_ops->delay_ms(1);
     if (!lcd_drv->hw_interface->write_pin(lcd_drv->hw_context, HD44780_PIN_EN, false)) {
         return false;
     }
 
-    lcd_drv->hw_interface->delay_ms(1);
+    lcd_drv->platform_ops->delay_ms(1);
 
     return true;
 }
@@ -164,50 +157,58 @@ static bool hd44780_write_byte(hd44780_driver_t *lcd_drv, uint8_t byte, bool is_
     return true;
 }
 
-bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_interface, void *hw_context) {
-    if ((lcd_drv == NULL) || (hw_interface == NULL) || (!hd44780_interface_validate(hw_interface))) {
+bool hd44780_init(hd44780_driver_t *lcd_drv, const hd44780_interface_t *hw_interface, const platform_ops_t *platform_ops, void *hw_context) {
+
+    if ((lcd_drv == NULL) || (hw_interface == NULL) || (platform_ops == NULL) || 
+        (!hd44780_interface_validate(hw_interface))) {
+        return false;
+    }
+
+    /** Validate platform operations */
+    if (!platform_ops_validate(platform_ops)) {
         return false;
     }
 
     lcd_drv->hw_interface = hw_interface;
+    lcd_drv->platform_ops = platform_ops;
     lcd_drv->hw_context = hw_context;
 
     /* Enable backlight by default */
     lcd_drv->backlight_state = true;
 
     /** Step 1. Power on delay > 100 ms */
-    lcd_drv->hw_interface->delay_ms(100);
+    lcd_drv->platform_ops->delay_ms(100);
 
-    /** \todo initialize the pcf drive driver here (?) */
+    /** Initialize hardware interface */
     if (!lcd_drv->hw_interface->init(lcd_drv->hw_context)) {
         return false;
     }
     
-    lcd_drv->hw_interface->delay_ms(10);
+    lcd_drv->platform_ops->delay_ms(10);
 
     /** Step 2. Instruction 00110000b (30h), then delay > 4.1 ms */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
         return false;
     }
-    lcd_drv->hw_interface->delay_ms(5);
+    lcd_drv->platform_ops->delay_ms(5);
 
     /** Step 3. Instruction 00110000b (30h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
         return false;
     }
-    lcd_drv->hw_interface->delay_ms(1);
+    lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 4. Instruction 00110000b (30h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x30, 0)) {
         return false;
     }
-    lcd_drv->hw_interface->delay_ms(1);
+    lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 5. Instruction 00100000b (20h), then delay > 100 us */
     if (!hd44780_write_nibble(lcd_drv, 0x20, 0)) {
         return false;
     }
-    lcd_drv->hw_interface->delay_ms(1);
+    lcd_drv->platform_ops->delay_ms(1);
 
     /** Step 6. Send Function Set with proper configuration */
     if (!hd44780_send_cmd(lcd_drv, HD44780_CMD_FUNCTION_SET | HD44780_4BIT_MODE | HD44780_2_LINE | HD44780_5x8_DOTS)) {
@@ -251,7 +252,7 @@ bool hd44780_send_cmd(hd44780_driver_t *lcd_drv, uint8_t cmd) {
         return false;
     }
 
-    lcd_drv->hw_interface->delay_ms(5);
+    lcd_drv->platform_ops->delay_ms(5);
 
     return true;
 }
@@ -265,7 +266,7 @@ bool hd44780_send_data(hd44780_driver_t *lcd_drv, uint8_t data) {
         return false;
     }
 
-    lcd_drv->hw_interface->delay_ms(1);
+    lcd_drv->platform_ops->delay_ms(1);
 
     return true;
 }
@@ -370,7 +371,7 @@ bool hd44780_display_control(hd44780_driver_t *lcd_drv, bool display_on, bool cu
 
 static void hd44780_test(hd44780_driver_t *lcd_drv) {
 #if HD44780_STARTUP_TEST_ENABLE
-    static uint32_t last_update = 0;
+    static uint32_t test_time_ms = 0;
     static uint8_t demo_state = 0;
     char time_str[16];
 
@@ -378,59 +379,58 @@ static void hd44780_test(hd44780_driver_t *lcd_drv) {
     hd44780_display_text_at_line(lcd_drv, "HD44780 LCD", 1);
 
     while (1) {
-        if (lcd_drv->hw_interface->get_systick() - last_update > 2000) {
+        lcd_drv->platform_ops->delay_ms(2000);
       
-            switch (demo_state) {
-                case 0:
-                    /** Display initial test message */
-                    hd44780_clear(lcd_drv);
-                    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
-                    hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1); 
-                    break;
-                
-                case 1:
-                    /** Running time display */
-                    hd44780_clear(lcd_drv);
-                    hd44780_display_text_at_line(lcd_drv, "Running Time:", 0);
-                    snprintf(time_str, sizeof(time_str), "%u ms", lcd_drv->hw_interface->get_systick());
-                    hd44780_display_text_at_line(lcd_drv, time_str, 1);
-                    break;
-                
-                case 2:
-                    /** Backlight toggle test */
-                    hd44780_clear(lcd_drv);
-                    hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
-                    hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
+		switch (demo_state) {
+			case 0:
+				/** Display initial test message */
+				hd44780_clear(lcd_drv);
+				hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 0);
+				hd44780_display_text_at_line(lcd_drv, "TESTING LCD!", 1);
+				break;
 
-                    lcd_drv->hw_interface->delay_ms(1000);
-                    hd44780_backlight(lcd_drv, false);
-                    lcd_drv->hw_interface->delay_ms(1000);
-                    hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
-                    lcd_drv->hw_interface->delay_ms(1000);
-                    hd44780_backlight(lcd_drv, true);
-                    break;
-                
-                case 3:
-                    /** Cursor control test */
-                    hd44780_clear(lcd_drv);
-                    hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
-                    hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
-                    hd44780_display_control(lcd_drv, true, true, true);
-                    lcd_drv->hw_interface->delay_ms(2000);
-                    hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
-                    hd44780_display_control(lcd_drv, true, false, false);
-                    printf("Display: Cursor ON\r\n");
-                    break;
-                
-                default:
-                    demo_state = -1;
-                    hd44780_display_control(lcd_drv, true, false, false);
-                    break;
-            }
+			case 1:
+				/** Running time display */
+				hd44780_clear(lcd_drv);
+				hd44780_display_text_at_line(lcd_drv, "Running Time:", 0);
+				snprintf(time_str, sizeof(time_str), "%lu ms", test_time_ms);
+				hd44780_display_text_at_line(lcd_drv, time_str, 1);
+				break;
+
+			case 2:
+				/** Backlight toggle test */
+				hd44780_clear(lcd_drv);
+				hd44780_display_text_at_line(lcd_drv, "Backlight Test", 0);
+				hd44780_display_text_at_line(lcd_drv, "Turning OFF...", 1);
+
+				lcd_drv->platform_ops->delay_ms(1000);
+				hd44780_backlight(lcd_drv, false);
+				lcd_drv->platform_ops->delay_ms(1000);
+				hd44780_display_text_at_line(lcd_drv, "Turning ON...", 1);
+				lcd_drv->platform_ops->delay_ms(1000);
+				hd44780_backlight(lcd_drv, true);
+				break;
+
+			case 3:
+				/** Cursor control test */
+				hd44780_clear(lcd_drv);
+				hd44780_display_text_at_line(lcd_drv, "Cursor Test", 0);
+				hd44780_display_text_at_line(lcd_drv, "Cursor ON", 1);
+				hd44780_display_control(lcd_drv, true, true, true);
+				lcd_drv->platform_ops->delay_ms(2000);
+				hd44780_display_text_at_line(lcd_drv, "Cursor OFF", 1);
+				hd44780_display_control(lcd_drv, true, false, false);
+				printf("Display: Cursor ON\r\n");
+				break;
+
+			default:
+				demo_state = -1;
+				hd44780_display_control(lcd_drv, true, false, false);
+				break;
+		}
         
         demo_state++;
-        last_update = lcd_drv->hw_interface->get_systick();
-        }
+        test_time_ms += 2000;
     }
 #endif /* !HD44780_STARTUP_TEST_ENABLE */
 }

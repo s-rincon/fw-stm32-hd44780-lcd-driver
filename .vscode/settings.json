@@ -8,6 +8,7 @@
         "stddef.h": "c",
         "stdbool.h": "c",
         "hd44780_driver.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "platform_ops.h": "c"
     }
 }

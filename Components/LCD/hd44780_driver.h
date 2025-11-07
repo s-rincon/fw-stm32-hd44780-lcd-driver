@@ -18,6 +18,7 @@
 #include <stdbool.h>
 
 #include "hd44780_interface.h"
+#include "platform_ops.h"
 
 /** Enable startup test sequence (0=disabled, 1=enabled) */
 #define HD44780_STARTUP_TEST_ENABLE 1
@@ -29,10 +30,11 @@
  * @brief HD44780 LCD driver structure
  */
 typedef struct hd44780_driver_ {
-    const hd44780_interface_t *hw_interface;  /**< Hardware interface operations */
-    void *hw_context;                         /**< Hardware-specific context data */
-    bool backlight_state;                     /**< Current backlight state (true=on, false=off) */
-    
+    const hd44780_interface_t *hw_interface;    /**< Hardware interface operations */
+    const platform_ops_t *platform_ops;         /**< Platform operations */
+    void *hw_context;                           /**< Hardware-specific context data */
+    bool backlight_state;                       /**< Current backlight state (true=on, false=off) */
+
 } hd44780_driver_t;
 
 /**
@@ -40,10 +42,14 @@ typedef struct hd44780_driver_ {
  * 
  * @param[in,out] lcd Pointer to the HD44780 driver structure
  * @param[in] hw_interface Pointer to hardware interface operations
+ * @param[in] platform_ops Pointer to platform operations
  * @param[in] hw_context Hardware-specific context data
  * @return true if initialization successful, false otherwise
  */
-bool hd44780_init(hd44780_driver_t *lcd, const hd44780_interface_t *hw_interface, void *hw_context);
+bool hd44780_init(hd44780_driver_t *lcd, 
+                  const hd44780_interface_t *hw_interface, 
+                  const platform_ops_t *platform_ops,
+                  void *hw_context);
 
 /**
  * @brief Send a command to the HD44780 controller

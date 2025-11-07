@@ -24,6 +24,7 @@
 #include "pcf8574_driver.h"
 #include "hd44780_driver.h"
 #include "hd44780_pcf8574_adapter.h"
+#include "platform_ops.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -124,10 +125,12 @@ int main(void)
   printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
   printf("Initializing PCF8574 and HD44780...\r\n");
 
+  const platform_ops_t *paltform_ops = platform_ops_get_instance();
+
   // Step 1. Initialize the PCF8574 driver
   if (pcf8574_init(&pcf8574, &pcf8574_config)) {
     // Stetp 2. Initialize the HD44780 driver
-    hd44780_init(&lcd, &hd44780_pcf8574_interface, &adapter_context);
+    hd44780_init(&lcd, &hd44780_pcf8574_interface, paltform_ops, &adapter_context);
   }
 
   /* USER CODE END 2 */

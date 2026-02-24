@@ -21,7 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "pcf8574_driver.h"
+#include <stdio.h>
+
+#include "app_display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,39 +62,24 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-bool io_expander_init(void *hw_instance) {
-  UNUSED(hw_instance);
-  return true;
+/**
+ * @brief Redirect printf to UART1 for debugging
+ */
+int _write(int file, char *ptr, int len) {
+  HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+  return len;
 }
 
-bool io_expander_deinit(void *hw_instance) {
-  UNUSED(hw_instance);
-  return true;
+static void display_test(void) {
+  static uint32_t last_tick = 0;
+  static uint32_t time_secs = 0;
+
+  if ((HAL_GetTick() - last_tick) >= 1000) {
+    last_tick = HAL_GetTick();
+    display_show_time(++time_secs);
+  }
+
 }
-
-bool io_expander_write(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms) {
-  return HAL_I2C_Master_Transmit((I2C_HandleTypeDef *)hw_instance, address, pdata, data_len, timeout_ms) == HAL_OK;
-}
-
-bool io_expander_read(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms) {
-  return HAL_I2C_Master_Receive((I2C_HandleTypeDef *)hw_instance, address, pdata, data_len, timeout_ms) == HAL_OK;
-}
-
-pcf8574_i2c_interface_t pcf8574_i2c_intf = {
-  .init = io_expander_init,
-  .deinit = io_expander_deinit,
-  .write = io_expander_write,
-  .read = io_expander_read
-};
-
-pcf8574_driver_config_t pcf8574_config = {
-  .intf = &pcf8574_i2c_intf,
-  .hw_instance = &hi2c1,
-  .i2c_address = 0x27,
-  .i2c_timeout_ms = 100,
-};
-
-pcf8574_driver_t pcf8574_driver;
 
 /* USER CODE END 0 */
 
@@ -128,37 +115,27 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   
-  // Initialize PCF8574 driver with I2C1 and standard address (0x27)
-  if (pcf8574_init(&pcf8574_driver, &pcf8574_config)) {
-    pcf8574_write_port(&pcf8574_driver, 0xFF);
-  }
+  printf("STM32 PCF8574 HD44780 LCD Driver Test\r\n");
+  
+  display_init();
+  display_show_message("LCD TEST");
+  display_show_time(0);
+  HAL_Delay(2000);
+
+
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  
+   
   while (1)
   {
+    display_test();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
-    // Example PCF8574 usage - toggle some pins
-    static uint32_t last_toggle = 0;
-    if (HAL_GetTick() - last_toggle > 1000) {  // Every 1 second
-      static bool toggle_state = false;
-      
-      if (toggle_state) {
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, true);   // Set P0 high
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, false);  // Set P1 low
-      } else {
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_0, false);  // Set P0 low
-        pcf8574_write_pin(&pcf8574_driver, PCF8574_PIN_1, true);   // Set P1 high
-      }
-      
-      toggle_state = !toggle_state;
-      last_toggle = HAL_GetTick();
-    }
     
   }
   /* USER CODE END 3 */

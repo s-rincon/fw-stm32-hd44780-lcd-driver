@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "main.h"
-#include "pcf8574_i2c_interface.h"
+#include "pcf8574_interface.h"
 
 /**
  * @brief PCF8574 base I2C address (7-bit address shifted left)
@@ -37,43 +37,40 @@
 #define PCF8574_PIN_7   0x80    /**< Pin P7 - Bit mask for pin 7 */
 
 /**
- * @brief PCF8574 driver configuration structure
- */
-typedef struct pcf8574_driver_config_ {
-    pcf8574_i2c_interface_t *intf;
-    void *hw_instance;
-    uint8_t i2c_address;
-    uint32_t i2c_timeout_ms;
-
-} pcf8574_driver_config_t;
-
-/**
  * @brief PCF8574 driver handle structure
  * 
  */
 typedef struct pcf8574_driver_ {
-    pcf8574_i2c_interface_t *intf;
-    void *hw_instance;
-    uint8_t i2c_address;
+    const pcf8574_interface_t *hw_interface;
+    void *hw_context;
     uint8_t current_output;
+    uint8_t i2c_address;
     uint32_t i2c_timeout_ms;
+    bool initialized;
 
 } pcf8574_driver_t;
 
 /**
  * @brief Initialize the PCF8574 driver instance
  * @param driver Pointer to the PCF8574 driver handle to initialize
- * @param config Pointer to the PCF8574 driver configuration
+ * @param hw_interface Pointer to the PCF8574 I2C interface structure
+ * @param hw_context Pointer to hardware-specific context data
+ * @param i2c_address 7-bit I2C address of the PCF8574 device
+ * @param i2c_timeout_ms Timeout in milliseconds for I2C transactions
  * @return true if initialization successful, false otherwise
  */
-bool pcf8574_init(pcf8574_driver_t *driver, pcf8574_driver_config_t *config); 
+bool pcf8574_init(pcf8574_driver_t *io_drv,
+                    const pcf8574_interface_t *hw_interface,
+                    void *hw_context,
+                    uint8_t i2c_address,
+                    uint32_t i2c_timeout_ms);
 
 /**
  * @brief Deinitialize the PCF8574 driver instance
  * @param driver Pointer to the PCF8574 driver handle to deinitialize
  * @return true if deinitialization successful, false otherwise
  */
-bool pcf8574_deinit(pcf8574_driver_t *driver);
+bool pcf8574_deinit(pcf8574_driver_t *io_drv);
 
 /**
  * @brief Read the entire 8-bit port state
@@ -81,7 +78,7 @@ bool pcf8574_deinit(pcf8574_driver_t *driver);
  * @param data Pointer to store the read 8-bit port data
  * @return true if read successful, false on I2C communication error
  */
-bool pcf8574_read_port(pcf8574_driver_t *driver, uint8_t *data);
+bool pcf8574_read_port(pcf8574_driver_t *io_drv, uint8_t *data);
 
 /**
  * @brief Write the entire 8-bit port state
@@ -89,7 +86,7 @@ bool pcf8574_read_port(pcf8574_driver_t *driver, uint8_t *data);
  * @param data 8-bit data to write to the port
  * @return true if write successful, false on I2C communication error
  */
-bool pcf8574_write_port(pcf8574_driver_t *driver, uint8_t data);
+bool pcf8574_write_port(pcf8574_driver_t *io_drv, uint8_t data);
 
 /**
  * @brief Read the state of a specific pin
@@ -98,7 +95,7 @@ bool pcf8574_write_port(pcf8574_driver_t *driver, uint8_t data);
  * @param state Pointer to store the pin state (true = high, false = low)
  * @return true if read successful, false on I2C communication error
  */
-bool pcf8574_read_pin(pcf8574_driver_t *driver, uint8_t pin, bool *state);
+bool pcf8574_read_pin(pcf8574_driver_t *io_drv, uint8_t pin, bool *state);
 
 /**
  * @brief Write to a specific pin (set or reset)
@@ -107,6 +104,6 @@ bool pcf8574_read_pin(pcf8574_driver_t *driver, uint8_t pin, bool *state);
  * @param set_reset Pin action: true = set pin high, false = reset pin low
  * @return true if write successful, false on I2C communication error
  */
-bool pcf8574_write_pin(pcf8574_driver_t *driver, uint8_t pin, bool set_reset);
+bool pcf8574_write_pin(pcf8574_driver_t *io_drv, uint8_t pin, bool set_reset);
 
 #endif /* __PCF8574_DRIVER_INC_ */

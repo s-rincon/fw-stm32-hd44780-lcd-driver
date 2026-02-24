@@ -1,35 +1,21 @@
-/**
- * @file io_expander_interface.h
- * @brief Generic IO Expander Interface Header
- * 
- * Generic interface for IO expanders that allows different IO expander
- * chips to be used interchangeably through a common API.
- * 
- * @author Santiago Rincón Carreño
- * @date October 30, 2025
- */
-
-#ifndef __PCF8574_I2C_INTERFACE_INC_
-#define __PCF8574_I2C_INTERFACE_INC_
+#ifndef __PCF8574_INTERFACE_INC_
+#define __PCF8574_INTERFACE_INC_
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /**
- * @brief PCF8574 I2C interface structure
- * 
- * Function pointer structure that defines the I2C communication interface
- * for the PCF8574 driver. This allows the driver to work with different
- * I2C implementations by providing the necessary low-level functions.
+ * @brief PCF8574 interface structure
  */
-typedef struct pcf8574_i2c_interface_ {
+typedef struct pcf8574_interface_ {
     /**
      * @brief Initialize the I2C interface
      * @param[in] interface Pointer to the PCF8574 I2C interface structure
      * @param[in] hw_instance Pointer to the hardware-specific I2C instance
      * @return true if initialization successful, false otherwise
      */
-    bool (*init)(void *hw_instance);
+    bool (*init)(void *context);
 
     /**
      * @brief Deinitialize the I2C interface
@@ -37,7 +23,7 @@ typedef struct pcf8574_i2c_interface_ {
      * @param[in] hw_instance Pointer to the hardware-specific I2C instance
      * @return true if deinitialization successful, false otherwise
      */
-    bool (*deinit)(void *hw_instance);
+    bool (*deinit)(void *context);
 
     /**
      * @brief Write data using the I2C interface
@@ -48,7 +34,7 @@ typedef struct pcf8574_i2c_interface_ {
      * @param[in] timeout_ms Timeout in milliseconds for the I2C transaction
      * @return true if write successful, false otherwise
      */
-    bool (*write)(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
+    bool (*write)(void *context, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
 
     /**
      * @brief Read data using the I2C interface
@@ -59,8 +45,24 @@ typedef struct pcf8574_i2c_interface_ {
      * @param[in] timeout_ms Timeout in milliseconds for the I2C transaction
      * @return true if read successful, false otherwise
      */
-    bool (*read)(void *hw_instance, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
+    bool (*read)(void *context, uint8_t address, uint8_t *pdata, uint32_t data_len, uint32_t timeout_ms);
 
-} pcf8574_i2c_interface_t;
+} pcf8574_interface_t;
 
-#endif /* __PCF8574_I2C_INTERFACE_INC_ */
+/**
+ * @brief Validate hardware interface completeness
+ * 
+ * @param[in] interface Pointer to hardware interface structure to validate
+ * @retval true Interface is valid and ready for use
+ * @retval false Interface is invalid (NULL pointer or missing functions)
+ */
+static inline bool pcf8574_interface_validate(const pcf8574_interface_t *interface)
+{
+    return (interface != NULL) &&
+           (interface->init != NULL) &&
+           (interface->deinit != NULL) &&
+           (interface->write != NULL) &&
+           (interface->read != NULL);
+}
+
+#endif /* __PCF8574_INTERFACE_INC_ */
